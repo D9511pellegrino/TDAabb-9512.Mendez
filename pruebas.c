@@ -3,6 +3,7 @@
 #include "pa2mm.h"
 #include "string.h"
 
+
 int comparador_int(int* primero, int* segundo){
   return *primero-*segundo;
 }
@@ -35,7 +36,7 @@ void dadoUnABB_PuedoInsertar(){
   pa2m_afirmar(abb_buscar(a, &(numeros[1]))==&(numeros[1]), "El elemento insertado está en el ABB");
   pa2m_afirmar(abb_tamanio(a)==2, "El tamaño del ABB es 2");
 
-  //abb_destruir(a);
+  abb_destruir(a);
 
 }
 
