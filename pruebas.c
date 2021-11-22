@@ -18,13 +18,11 @@ int comparador_padron(struct alumno* primero, struct alumno* segundo){
     return comparador_int(&(primero->padron), &(segundo->padron));
 }
 
-bool chequear_alumni_postorden(alumno_t** alumnos_ordenados, alumno_t alumnos_postorden[6]){
-  if(!alumnos_ordenados || !alumnos_postorden) return false;
+bool chequear_alumni_orden(alumno_t** alumnos_ordenados, alumno_t** alumnos_orden_CORRECTO, size_t cantidad){
+  if(!alumnos_ordenados || !alumnos_orden_CORRECTO) return false;
 
-  int i = 0;
-  while(alumnos_ordenados[i]){
-    if(comparador_padron(alumnos_ordenados[i], &alumnos_postorden[i])!=0) return false;
-    if(!alumnos_ordenados[i+1]) break;
+  for(int i = 0; i<cantidad; i++){
+    if(comparador_padron(alumnos_ordenados[i], alumnos_orden_CORRECTO[i])!=0) return false;
     i++;
   }
   return true;
@@ -33,8 +31,16 @@ bool chequear_alumni_postorden(alumno_t** alumnos_ordenados, alumno_t alumnos_po
 bool mostrar_alumno(void* a, void* b){
   alumno_t* alumno = a;
 
-  printf("Alumnos %s (%d)\n", alumno->nombre, alumno->padron);
+  printf("Alumno: %s (%d)\n", alumno->nombre, alumno->padron);
   return true;
+}
+
+bool buscar_alumno(void* a, void* b){
+  alumno_t* alumno_a = a;
+  alumno_t* alumno_b = b;
+
+  if(comparador_padron(alumno_a, alumno_b)==0) return false;
+  else return true;
 }
 
 
@@ -201,7 +207,7 @@ void dadoUnABBconElementos_Puedoquitar(){
 
 
 void puedoRecorrerunABB_INORDEN(){
-  abb_t* a = abb_crear((abb_comparador) comparador_padron);
+ abb_t* a = abb_crear((abb_comparador) comparador_padron);
 
   struct alumno alumnos[6];
 
@@ -222,42 +228,76 @@ void puedoRecorrerunABB_INORDEN(){
   for (int i = 0; i < 6; i++){
     abb_insertar(a, &(alumnos[i]));  
   }
-  pa2m_afirmar(!abb_vacio(a), "El ABB no está vacio");
 
-  struct alumno* alumnos_ordenados[6];
-
-
-  /*abb_t* a = abb_crear((abb_comparador) comparador_int);
-
-  int numeros[7] = {5, 3, 9, 2, 4, 8, 11};
-
-  bool insercion_correcta=true;
-
-
-  for (int i = 0; i < 7; i++){
-    if(abb_insertar(a, &(numeros[i]))!=a) insercion_correcta = false;  
-  }
-
-  pa2m_afirmar(insercion_correcta,"Se insertaron 7 elementos");
-  
-
-  int numeros_inorden[7] = {2, 3, 4, 5, 8, 9, 11};
-  int** numeros_ordenados_todos = calloc(7, sizeof(int*));
-  if(!numeros_ordenados_todos){
+  alumno_t** alumnos_inorden = calloc(6, sizeof(alumno_t*));
+  if(!alumnos_inorden){
     abb_destruir(a);
     return;
-  }*/
+  }
 
+  bool reserva_fallida = false;
 
-  //pa2m_afirmar(abb_recorrer(a, 1, (void**)&numeros_ordenados_todos, 7)==7, "Se recorren la cantidad de elementos correcta");
-  //pa2m_afirmar(numeros_inorden==*numeros_ordenados_todos, "Los elementos se guardan inorden");
+  for(int i = 0; i<6; i++){
+    alumnos_inorden[i] = malloc(sizeof(alumno_t));
+    if(!alumnos_inorden[i]) reserva_fallida = true;
+  }
+
+  if(reserva_fallida){
+    for(int i = 0; i<6; i++) free(alumnos_inorden[i]);
+    free(alumnos_inorden);
+    abb_destruir(a);
+  }
+
+  *alumnos_inorden[0] = alumnos[5];
+  *alumnos_inorden[1] = alumnos[1];
+  *alumnos_inorden[2] = alumnos[4];
+  *alumnos_inorden[3] = alumnos[0];
+  *alumnos_inorden[4] = alumnos[2];
+  *alumnos_inorden[5] = alumnos[3];
+
+  alumno_t** alumnos_ordenados = calloc(6, sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    abb_destruir(a);
+    return;
+  }
+
 
   pa2m_afirmar(abb_recorrer(a, INORDEN, (void**)alumnos_ordenados, 6)==6, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_inorden, 6), "Los alumnos se guardan inorden");
 
-  abb_con_cada_elemento(a, INORDEN, mostrar_alumno, NULL);
+  alumnos_ordenados = realloc(alumnos_ordenados, 3*sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    for(int i = 0; i<6; i++) free(alumnos_inorden[i]);
+    free(alumnos_inorden);
+    abb_destruir(a);
+    return;
+  }
+
+  pa2m_afirmar(abb_recorrer(a, INORDEN, (void**)alumnos_ordenados, 3)==3, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_inorden, 3), "Los alumnos se guardan inorden");
+
+  alumnos_ordenados = realloc(alumnos_ordenados, 8*sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    for(int i = 0; i<6; i++) free(alumnos_inorden[i]);
+    free(alumnos_inorden);
+    abb_destruir(a);
+    return;
+  }
+
+  pa2m_afirmar(abb_recorrer(a, INORDEN, (void**)alumnos_ordenados, 8)==6, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_inorden, 6), "Los alumnos se guardan inorden");
 
 
+  pa2m_afirmar(abb_con_cada_elemento(a, INORDEN, buscar_alumno, &alumnos[4])==3, "El iterador interno devuelve la cantidad de elementos que se esperaba iterar.");
+  pa2m_afirmar(abb_con_cada_elemento(a, INORDEN, mostrar_alumno, NULL)==6, "Puedo llamar al iterador con aux=NULL y recorre la cantidad correcta");
+
+
+
+  for(int i = 0; i<6; i++) free(alumnos_inorden[i]);
+  free(alumnos_inorden);
+  free(alumnos_ordenados);
   abb_destruir(a);
+
 }
 
 void puedoRecorrerunABB_POSTORDEN(){
@@ -283,15 +323,78 @@ void puedoRecorrerunABB_POSTORDEN(){
     abb_insertar(a, &(alumnos[i]));  
   }
 
-  //struct alumno alumnos_postorden[6] = {alumnos[5], alumnos[4], alumnos[1], alumnos[3], alumnos[2], alumnos[0]};
-  struct alumno* alumnos_ordenados[6];
+  alumno_t** alumnos_postorden = calloc(6, sizeof(alumno_t*));
+  if(!alumnos_postorden){
+    abb_destruir(a);
+    return;
+  }
 
-  pa2m_afirmar(abb_recorrer(a, 1, (void**)alumnos_ordenados, 6)==6, "Se recorren la cantidad de elementos correcta");
-  //pa2m_afirmar(chequear_alumni_postorden(alumnos_ordenados, alumnos_postorden), "Los alumnos se guardan postorden");
-  abb_con_cada_elemento(a, POSTORDEN, mostrar_alumno, NULL);
+  bool reserva_fallida = false;
+
+  for(int i = 0; i<6; i++){
+    alumnos_postorden[i] = malloc(sizeof(alumno_t));
+    if(!alumnos_postorden[i]) reserva_fallida = true;
+  }
+
+  if(reserva_fallida){
+    for(int i = 0; i<6; i++) free(alumnos_postorden[i]);
+    free(alumnos_postorden);
+    abb_destruir(a);
+  }
+
+  *alumnos_postorden[0] = alumnos[5];
+  *alumnos_postorden[1] = alumnos[4];
+  *alumnos_postorden[2] = alumnos[1];
+  *alumnos_postorden[3] = alumnos[3];
+  *alumnos_postorden[4] = alumnos[2];
+  *alumnos_postorden[5] = alumnos[0];
+
+  alumno_t** alumnos_ordenados = calloc(6, sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    abb_destruir(a);
+    return;
+  }
+
+
+  pa2m_afirmar(abb_recorrer(a, POSTORDEN, (void**)alumnos_ordenados, 6)==6, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_postorden, 6), "Los alumnos se guardan postorden");
 
 
 
+
+
+  alumnos_ordenados = realloc(alumnos_ordenados, 8*sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    for(int i = 0; i<6; i++) free(alumnos_postorden[i]);
+    free(alumnos_postorden);
+    abb_destruir(a);
+    return;
+  }
+
+  pa2m_afirmar(abb_recorrer(a, POSTORDEN, (void**)alumnos_ordenados, 8)==6, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_postorden, 6), "Los alumnos se guardan postorden");
+
+
+
+
+  alumnos_ordenados = realloc(alumnos_ordenados, 3*sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    for(int i = 0; i<6; i++) free(alumnos_postorden[i]);
+    free(alumnos_postorden);
+    abb_destruir(a);
+    return;
+  }
+
+  pa2m_afirmar(abb_recorrer(a, POSTORDEN, (void**)alumnos_ordenados, 3)==3, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_postorden, 3), "Los alumnos se guardan postorden");
+
+
+  pa2m_afirmar(abb_con_cada_elemento(a, POSTORDEN, buscar_alumno, &alumnos[4])==2, "El iterador interno devuelve la cantidad de elementos que se esperaba iterar.");
+  pa2m_afirmar(abb_con_cada_elemento(a, POSTORDEN, mostrar_alumno, NULL)==6, "Puedo llamar al iterador con aux=NULL y recorre la cantidad correcta");
+
+  for(int i = 0; i<6; i++) free(alumnos_postorden[i]);
+  free(alumnos_postorden);
+  free(alumnos_ordenados);
   abb_destruir(a);
 
 }
@@ -319,11 +422,82 @@ void puedoRecorrerunABB_PREORDEN(){
     abb_insertar(a, &(alumnos[i]));  
   }
 
-  abb_con_cada_elemento(a, PREORDEN, mostrar_alumno, NULL);
+  alumno_t** alumnos_preorden = calloc(6, sizeof(alumno_t*));
+  if(!alumnos_preorden){
+    abb_destruir(a);
+    return;
+  }
+
+  bool reserva_fallida = false;
+
+  for(int i = 0; i<6; i++){
+    alumnos_preorden[i] = malloc(sizeof(alumno_t));
+    if(!alumnos_preorden[i]) reserva_fallida = true;
+  }
+
+  if(reserva_fallida){
+    for(int i = 0; i<6; i++) free(alumnos_preorden[i]);
+    free(alumnos_preorden);
+    abb_destruir(a);
+  }
+
+  *alumnos_preorden[0] = alumnos[0];
+  *alumnos_preorden[1] = alumnos[1];
+  *alumnos_preorden[2] = alumnos[5];
+  *alumnos_preorden[3] = alumnos[4];
+  *alumnos_preorden[4] = alumnos[2];
+  *alumnos_preorden[5] = alumnos[3];
+
+  alumno_t** alumnos_ordenados = malloc(6*sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    for(int i = 0; i<6; i++) free(alumnos_preorden[i]);
+    free(alumnos_preorden);
+    abb_destruir(a);
+    return;
+  }
+
+  pa2m_afirmar(abb_recorrer(a, PREORDEN, (void**)alumnos_ordenados, 6)==6, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_preorden, 6), "Los alumnos se guardan preorden");
+  
+
+  alumnos_ordenados = realloc(alumnos_ordenados, 3*sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    for(int i = 0; i<6; i++) free(alumnos_preorden[i]);
+    free(alumnos_preorden);
+    abb_destruir(a);
+    return;
+  }
+
+  pa2m_afirmar(abb_recorrer(a, PREORDEN, (void**)alumnos_ordenados, 3)==3, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_preorden, 3), "Los alumnos se guardan preorden");
 
 
 
+
+  alumnos_ordenados = realloc(alumnos_ordenados, 9*sizeof(alumno_t*));
+  if(!alumnos_ordenados){
+    for(int i = 0; i<6; i++) free(alumnos_preorden[i]);
+    free(alumnos_preorden);
+    abb_destruir(a);
+    return;
+  }
+
+  pa2m_afirmar(abb_recorrer(a, PREORDEN, (void**)alumnos_ordenados, 9)==6, "Se recorren la cantidad de elementos correcta");
+  pa2m_afirmar(chequear_alumni_orden(alumnos_ordenados, alumnos_preorden, 6), "Los alumnos se guardan preorden");
+  
+
+  for(int i = 0; i<6; i++) free(alumnos_preorden[i]);
+  free(alumnos_preorden);
+  free(alumnos_ordenados);
+
+
+  pa2m_afirmar(abb_con_cada_elemento(a, PREORDEN, buscar_alumno, &alumnos[4])==4, "El iterador interno devuelve la cantidad de elementos que se esperaba iterar.");
+  pa2m_afirmar(abb_con_cada_elemento(a, PREORDEN, mostrar_alumno, NULL)==6, "Puedo llamar al iterador con aux=NULL y recorre la cantidad correcta");
+  
   abb_destruir(a);
+
+
+
 
 
 }
@@ -342,15 +516,14 @@ int main(){
   pa2m_nuevo_grupo("Pruebas de borrado");
   dadoUnABBconElementos_Puedoquitar();
 
-  pa2m_nuevo_grupo("Pruebas de recorrido inorden");
+  pa2m_nuevo_grupo("Pruebas de recorrido e iterador inorden");
   puedoRecorrerunABB_INORDEN();
 
-  pa2m_nuevo_grupo("Pruebas de recorrido postorden");
+  pa2m_nuevo_grupo("Pruebas de recorrido e iterador postorden");
   puedoRecorrerunABB_POSTORDEN();
 
-  pa2m_nuevo_grupo("Pruebas de recorrido preorden");
+  pa2m_nuevo_grupo("Pruebas de recorrido e iterador preorden");
   puedoRecorrerunABB_PREORDEN();
-
 
 
   return pa2m_mostrar_reporte();
