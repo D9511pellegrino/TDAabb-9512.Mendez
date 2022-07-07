@@ -8,8 +8,6 @@ typedef struct alumno{
   char* nombre;  
 } alumno_t;
 
-
-
 int comparador_int(int* primero, int* segundo){
   return *primero-*segundo;
 }
